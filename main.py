@@ -51,7 +51,6 @@ def aiming_and_config_render(app_state, mouse, BARREL):
     # basically, whenever rotating the object creates a surface on the back that completely covers the rotated object
     WINDOW.blit(WHEEL, (BARREL_CENTER[0] - 25, BARREL_CENTER[1] - 20))
 
-    pygame.display.update()
     return [barrel_copy, theta]
 
 # return time it would take for the cannonball to exit the cannon and the net velocity at which it will exit the cannon
@@ -113,8 +112,6 @@ def render_cannonball_motion(cannon_barrel_copy_list, hori_vel, vert_vel, cannon
     WINDOW.blit(cannon_barrel_copy, (BARREL_CENTER[0] - int(cannon_barrel_copy.get_width() / 2), BARREL_CENTER[1] - int(cannon_barrel_copy.get_height() / 2)))
     WINDOW.blit(WHEEL, (BARREL_CENTER[0] - 25, BARREL_CENTER[1] - 20))
 
-    pygame.display.update()
-
 # main function -----------------------------------------------------------------------------------
 def main():
 
@@ -152,6 +149,8 @@ def main():
                 vert_init_vel = cb_exit_time_and_vel[1] * math.sin(cannon_barrel_and_angle[1])
             case "cannonball arc":
                 render_cannonball_motion(cannon_barrel_and_angle, hori_init_vel, vert_init_vel, (100, 400), -9.8)
+        
+        pygame.display.update()
 
 
     pygame.QUIT()
