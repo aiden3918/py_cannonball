@@ -22,7 +22,7 @@ def calculate_d_v_or_t(what_to_calculate, v, d, t):
 
 # d = vo(t) + 1/2(at^2)
 def calc_d_using_vo_a_and_t(vo, a, t):
-    return (vo*t) + (0.5*a*math.pow(t,2))
+    return (vo * t) + (a * math.pow(t,2) / 2)
 
 # vf^2 = vo^2 + 2ad
 # vf = sqrt(vo^2 + 2ad)

@@ -21,8 +21,7 @@ pygame.display.set_caption("Cannonball - Python/Pygame")
 WINDOW_CENTER = (WINDOW_RES[0] // 2, WINDOW_RES[1] // 2)
 
 # background
-GRID_BG = pygame.image.load(os.path.join('Assets', 'grid-background-white.png'))
-GRID_BG = pygame.transform.scale(GRID_BG, WINDOW_RES)
+GRID_BG = pygame.image.load(os.path.join('Assets', 'grid-background-1280.png'))
 
 # initialize sprites -----------------------------------------------------------------------------------
 WHEEL = pygame.image.load(os.path.join('Assets', 'cannon-wheel-transparent.png')).convert_alpha()
@@ -32,7 +31,7 @@ BARREL = pygame.transform.scale(BARREL, (120, 120))
 CANNONBALL = pygame.image.load(os.path.join('Assets', 'cannonball-transparent.png')).convert_alpha()
 CANNONBALL = pygame.transform.scale(CANNONBALL, (20, 20))
 
-BARREL_CENTER = (110, 610)
+BARREL_CENTER = (120, 600)
 
 # performance data
 FPS_TEXT = pygame.font.SysFont('arial', 22)
@@ -55,9 +54,9 @@ WHITISH = (200, 200, 200)
 GRAYISH = (100, 100, 100)
 WHITE = (255, 255, 255)
 
-force_slider_input = gui.Slider((400, 50), (300, 20), 0.5, 0, 10000, WHITISH, GRAYISH, 2) # maybe make this a number input
-cannonball_mass_slider_input = gui.Slider((400, 120), (100, 20), 0.5, 0, 100, WHITISH, GRAYISH, 1)
-gravity_slider_input = gui.Slider((800, 50), (100, 20), 0.5, 0, 20, WHITISH, GRAYISH, 1)
+force_slider_input = gui.Slider((400, 50), (300, 20), 0.1, 0, 10000, WHITISH, GRAYISH, 2) # maybe make this a number input
+cannonball_mass_slider_input = gui.Slider((400, 120), (100, 20), 0.1, 0, 100, WHITISH, GRAYISH, 1)
+gravity_slider_input = gui.Slider((800, 50), (100, 20), 0.49, 0, 20, WHITISH, GRAYISH, 1)
 barrel_length_slider_input = gui.Slider((800, 120), (100, 20), 0.5, 0, 10, WHITISH, GRAYISH, 1)
 user_inputs = [force_slider_input, cannonball_mass_slider_input, gravity_slider_input, barrel_length_slider_input]
 
@@ -73,7 +72,7 @@ CANNON_SHOOT_SOUND = pygame.mixer.Sound(os.path.join('Assets', 'cannon-shoot.mp3
 FPS = 60
 BACKGROUND_COLOR = (100, 100, 100)
 GREENISH = (105, 150, 62)
-pixels_to_meters_rate = 11.2 # 11.2 is the # of pixelsp for every simulated meter
+pixels_to_meters_rate = 6.05 # 11.2 is the # of pixelsp for every simulated meter
 
 # update background -----------------------------------------------------------------------------------
 def update_background():
@@ -124,8 +123,10 @@ def calc_prereq_forces(gravity, force, cb_mass, barrel_length, angle):
     # find net vertical force
     vert_force_applied = force * math.sin(a.conv_deg_to_rad(angle))
     vert_weight = f.calculate_forces('f', 0, cb_mass, gravity)
-    normal_force = f.calculate_forces('f', 0, cb_mass, gravity) * math.cos(a.conv_deg_to_rad(angle))
+    normal_force = f.calculate_forces('f', 0, cb_mass, gravity) * math.cos(a.conv_deg_to_rad(angle)) # is the cannon's angle the right one
     net_vert_force = vert_force_applied + normal_force - vert_weight
+    # does the bug occur because once the cb leaves the ground, there is no longer any normal force acting on it?
+    # get back to this
 
     # find net horizontal force
     hori_force_applied = force * math.cos(a.conv_deg_to_rad(angle))
@@ -182,7 +183,7 @@ def render_cannonball_motion(cannon_barrel_copy_list, hori_vel, vert_vel, cannon
 
     # keep drawing all tracer dots
     for coordinate in tracer_dots:
-        pygame.draw.circle(WINDOW, (200, 0, 0), coordinate, 5)
+        pygame.draw.circle(WINDOW, (200, 0, 0), coordinate, 3)
 
 # update performance data on the bottom -----------------------------------------------------------------------------------
 def update_display_data(clock, frames_elapsed, angle):
@@ -225,6 +226,7 @@ def main():
         if keys_pressed[pygame.K_SPACE]:
             if app_state == 'aiming and config':
                 cb_exit_time_and_vel = calc_prereq_forces(gravity=gravity_slider_input.get_value(), force=force_slider_input.get_value(), cb_mass=cannonball_mass_slider_input.get_value(), barrel_length=5, angle=barrel_angle) # test values
+                print(f'cb_exit_time_and_vel: {cb_exit_time_and_vel}')
                 if cb_exit_time_and_vel != (-1, -1):
                     app_state = 'firing'
 
@@ -256,6 +258,9 @@ def main():
             case "cannonball arc":
                 render_cannonball_motion(cannon_barrel_and_angle, hori_init_vel, vert_init_vel, cannon_opening_offset, -9.8, frames_elapsed)
                 frames_elapsed += 1
+                if (frames_elapsed > FPS and keys_pressed[pygame.K_r]) or frames_elapsed > FPS * 20:
+                    tracer_dots.clear()
+                    app_state = 'aiming and config'
         
         update_display_data(clock, frames_elapsed, barrel_angle)
 
