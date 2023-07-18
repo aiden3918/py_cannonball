@@ -3,4 +3,4 @@ if cannon points directly up or down, the whole game freezes (fixed)
 to do:
 - replayability **
 - path tracing (red dots) DONE
-- user input * (perhaps make a slider class)
+- user input * (perhaps make a slider class) force, barrel length, cannonball mass, gravity(?)
