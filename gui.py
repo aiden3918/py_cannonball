@@ -63,12 +63,12 @@ class Number_Input():
             for i in range(10):
                 if keys_pressed[number_keys_list[i]] and len(self.text) < self.max_digits:
                     self.text += str(i)
-                    pygame.time.delay(50)
+                    pygame.time.delay(100)
                     
             if self.text != "":
                 if (keys_pressed[pygame.K_BACKSPACE]):
                         self.text = self.text[:-1]
-                        print(self.text)
+                        pygame.time.delay(100)
 
         text_display = self.element.render(self.text, 1, self.text_color)
         pygame.draw.rect(window, self.bg_color, background)
