@@ -27,7 +27,7 @@ IMAGE = pygame.image.load(os.path.join('Assets', 'testbtn.png'))
 test_btn = gui.Button(300, 100, IMAGE, 0.75)
 
 # test input
-TEXT_INPUT = gui.Number_Input(300, 300, 'arial', 20, 255, 255, 255, 0, 1000)
+TEXT_INPUT = gui.Number_Input(300, 300, 'arial', 20, (255, 255, 255), 0, 1000)
 
 # fps and movement of cannon
 FPS = 10
@@ -41,7 +41,7 @@ def draw_window(hitbox_x, hitbox_y):
     test_text = TEXT.render('testing', 1, (255, 255, 255)) # not sure what the middle one does, but its a 0 or 1
     WINDOW.blit(test_text, (10, 10))
 
-    TEXT_INPUT.render(WINDOW)
+    TEXT_INPUT.update_and_blit(WINDOW)
 
     # button update (blit) and event listener
     if test_btn.update(WINDOW):
@@ -76,7 +76,7 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
-            TEXT_INPUT.update_text_via_event(event)
+            TEXT_INPUT.listen(event, keys_pressed)
             
         keys_pressed = pygame.key.get_pressed()
 

@@ -1,8 +1,8 @@
 import pygame
 import math
 
-pygame.font.init()
-number_keys_input = [pygame.K_0, pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7, pygame.K_8, pygame.K_9]
+pygame.init()
+number_keys_list = [pygame.K_0, pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, pygame.K_5, pygame.K_6, pygame.K_7, pygame.K_8, pygame.K_9]
 
 # create button classes to use in game
 class Button():
@@ -32,37 +32,50 @@ class Button():
 
 
 class Number_Input():
-    def __init__(self, x: int, y: int, font_type: str, font_size: int, color: tuple, min: float, max: float) -> None:
+    def __init__(self, pos: tuple, size: tuple, font_type: str, font_size: int, color: tuple, background_color: tuple, initial_val: int, max_digits: int) -> None:
         self.element = pygame.font.SysFont(font_type, font_size)
-        self.y = y
-        self.x = x
-        self.text = ''
-        self.rgb = color
+        self.size = size
+        self.pos = pos
+        self.text_color = color
+        self.bg_color = background_color
         self.selected = False
         self.font_size = font_size
 
-    def update_text_via_event(self, event):
+        self.initial_val = initial_val
+        self.text = str(initial_val)
+
+        self.max_digits = max_digits
+
+    def update(self, window, event_list):
+        background = pygame.Rect(self.pos[0], self.pos[1], self.size[0], self.size[1])
+
+        keys_pressed = pygame.key.get_pressed()
+
         if pygame.mouse.get_pressed()[0] == 1:
-            if self.element.collidepoint(pygame.mouse.get_pos()): # collidepoint does not exist for sysfont
+            if background.collidepoint(pygame.mouse.get_pos()): 
                 self.selected = True
             else:
                 self.selected = False
                 return
             
+        
         if self.selected:
-            if event.type == pygame.KEYDOWN:
-                if event.key in number_keys_input:
-                    self.text += str(event.key)
-                elif event.key == pygame.K_BACKSPACE:
-                    self.text = self.text[:-1]
+            for i in range(10):
+                if keys_pressed[number_keys_list[i]] and len(self.text) < self.max_digits:
+                    self.text += str(i)
+                    pygame.time.delay(50)
+                    
+            if self.text != "":
+                if (keys_pressed[pygame.K_BACKSPACE]):
+                        self.text = self.text[:-1]
+                        print(self.text)
 
-    def render(self, window):
-        text_surface = self.element.render(self.text, True, self.rgb) # ig this is like finalizing the object data for blit?
+        text_display = self.element.render(self.text, 1, self.text_color)
+        pygame.draw.rect(window, self.bg_color, background)
+        window.blit(text_display, (self.pos[0] + 5, self.pos[1]))
 
-        rect = pygame.Rect(self.x - 5, self.y - 5, max(30, text_surface.get_width()) + 5, self.font_size + 10)
-        pygame.draw.rect(window, (255, 255, 255), rect, 2)
-
-        window.blit(text_surface, (self.x, self.y))
+    def get_value(self):
+        return int(self.text) if self.text != "" else ""
     
     # first try too im goated
     # now make it check that its selected using a selected/active var and give it min/max cap values
@@ -80,8 +93,8 @@ class Slider():
         self.container_color = container_color
         self.slider_color = slider_color
 
-        self.min = min
-        self.max = max
+        self.min_val = min
+        self.max_val = max
         self.initial_val = (self.slider_right_pos - self.slider_left_pos) * initial_val # <- float (0 to 1)
 
         self.rounded_to_nearest_decimal = round_num_decimals
@@ -101,4 +114,4 @@ class Slider():
         current_val = self.drag_button_rect.centerx - self.slider_left_pos
 
         rounding = math.pow(10, self.rounded_to_nearest_decimal)
-        return round(((current_val / val_range) * (self.max - self.min) + self.min) * rounding) / rounding
+        return round(((current_val / val_range) * (self.max_val - self.min_val) + self.min_val) * rounding) / rounding

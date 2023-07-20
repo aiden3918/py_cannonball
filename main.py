@@ -54,19 +54,22 @@ WHITISH = (200, 200, 200)
 GRAYISH = (100, 100, 100)
 WHITE = (255, 255, 255)
 
-force_slider_input = gui.Slider((400, 50), (300, 20), 0.1, 0, 10000, WHITISH, GRAYISH, 2) # maybe make this a number input
 cannonball_mass_slider_input = gui.Slider((400, 120), (100, 20), 0.1, 0, 100, WHITISH, GRAYISH, 1)
 gravity_slider_input = gui.Slider((800, 50), (100, 20), 0.49, 0, 20, WHITISH, GRAYISH, 1)
 barrel_length_slider_input = gui.Slider((800, 120), (100, 20), 0.5, 0, 10, WHITISH, GRAYISH, 1)
-user_inputs = [force_slider_input, cannonball_mass_slider_input, gravity_slider_input, barrel_length_slider_input]
+user_slider_inputs = [cannonball_mass_slider_input, gravity_slider_input, barrel_length_slider_input]
 
 force_text = pygame.font.SysFont('arial', 22)
 cannonball_mass_text = pygame.font.SysFont('arial', 22)
 gravity_text = pygame.font.SysFont('arial', 22)
 barrel_length_text = pygame.font.SysFont('arial', 22)
 
+force_number_input = gui.Number_Input((350, 20), (100, 30), 'arial', 22, GRAYISH, WHITISH, 5000, 5)
+force_input_note = pygame.font.SysFont('arial', 14)
+
 # sounds -----------------------------------------------------------------------------------
 CANNON_SHOOT_SOUND = pygame.mixer.Sound(os.path.join('Assets', 'cannon-shoot.mp3'))
+INVALID_INPUT_SOUND = pygame.mixer.Sound(os.path.join('Assets', 'invalid-input.mp3'))
 
 # some constants and variables -----------------------------------------------------------------------------------
 FPS = 60
@@ -98,21 +101,26 @@ def aiming_and_config_render(app_state, mouse, BARREL):
     return [barrel_copy, theta]
 
 # render user input elements during aiming and config -----------------------------------------------------------------------------------
-def render_inputs(mouse_pos, mouse_pressed):
+def render_inputs(mouse_pos, mouse_pressed, event):
     WINDOW.blit(user_input_panel, (200, 0))
 
-    for input in user_inputs:
+    force_number_input.update(WINDOW, pygame.event.get())
+    
+    for input in user_slider_inputs:
         input.update(WINDOW, mouse_pos, mouse_pressed)
     
-    force_text_rendered = force_text.render(f'Force: {force_slider_input.get_value()} N', 1, WHITE)
+    force_text_rendered = force_text.render(f'Force:                        N', 1, WHITE)
     cb_mass_rendered = cannonball_mass_text.render(f'Cannonball Mass: {cannonball_mass_slider_input.get_value()} kg', 1, WHITE)
     gravity_rendered = gravity_text.render(f'Gravity: {gravity_slider_input.get_value()} m/s^2', 1, WHITE)
     barrel_length_rendered = barrel_length_text.render(f'Barrel Length: {barrel_length_slider_input.get_value()} m', 1, WHITE)
 
-    WINDOW.blit(force_text_rendered, (force_slider_input.pos[0] - (force_text_rendered.get_width() // 2), force_slider_input.pos[1] - 40))
+    force_input_note_text = force_input_note.render('Note: min = 0, max = 10,000', 1, WHITE)
+
+    WINDOW.blit(force_text_rendered, (force_number_input.pos[0] - 60, force_number_input.pos[1]))
     WINDOW.blit(cb_mass_rendered, (cannonball_mass_slider_input.pos[0] - (cb_mass_rendered.get_width() // 2), cannonball_mass_slider_input.pos[1] - 40))
     WINDOW.blit(gravity_rendered, (gravity_slider_input.pos[0] - (gravity_rendered.get_width() // 2), gravity_slider_input.pos[1] - 40))
     WINDOW.blit(barrel_length_rendered, (barrel_length_slider_input.pos[0] - (barrel_length_rendered.get_width() // 2), barrel_length_slider_input.pos[1] - 40))
+    WINDOW.blit(force_input_note_text, (force_number_input.pos[0] - 30, force_number_input.pos[1] + 32))
 
 # calculate forces and information needed when user fires -----------------------------------------------------------------------------------
 # return time it would take for the cannonball to exit the cannon and the net velocity at which it will exit the cannon
@@ -210,7 +218,7 @@ def main():
     frames_elapsed = 0
 
     while run:
-        
+
         clock.tick(FPS)
 
         mouse = pygame.mouse.get_pos()
@@ -225,10 +233,15 @@ def main():
 
         if keys_pressed[pygame.K_SPACE]:
             if app_state == 'aiming and config':
-                cb_exit_time_and_vel = calc_prereq_forces(gravity=gravity_slider_input.get_value(), force=force_slider_input.get_value(), cb_mass=cannonball_mass_slider_input.get_value(), barrel_length=5, angle=barrel_angle) # test values
-                print(f'cb_exit_time_and_vel: {cb_exit_time_and_vel}')
-                if cb_exit_time_and_vel != (-1, -1):
-                    app_state = 'firing'
+
+                force_input_val = force_number_input.get_value()
+                if force_input_val == "" or force_input_val < 0 or force_input_val > 10_000:
+                    INVALID_INPUT_SOUND.play()
+                else:
+                    cb_exit_time_and_vel = calc_prereq_forces(gravity=gravity_slider_input.get_value(), force=force_input_val, cb_mass=cannonball_mass_slider_input.get_value(), barrel_length=5, angle=barrel_angle) # test values
+                    print(f'cb_exit_time_and_vel: {cb_exit_time_and_vel}')
+                    if cb_exit_time_and_vel != (-1, -1):
+                        app_state = 'firing'
 
         update_background()
 
@@ -238,9 +251,14 @@ def main():
                 frames_elapsed = 0
                 cannon_barrel_and_angle = aiming_and_config_render(app_state, mouse, BARREL)
                 barrel_angle = cannon_barrel_and_angle[1]
-                render_inputs(mouse, mouse_pressed)
+
+                render_inputs(mouse, mouse_pressed, pygame.event.get())
             case "firing":
+
+                force_number_input.selected = False
+
                 CANNON_SHOOT_SOUND.play()
+
                 pygame.time.delay(int(cb_exit_time_and_vel[0] * 1000)) # simulate cannonball firing out of cannon by just waiting for it to come out lol 
                 # whichever velocity = cannonball's exit velocity * math.trig(angle of cannon)
                 hori_init_vel = cb_exit_time_and_vel[1] * math.cos(barrel_angle * math.pi / 180)
@@ -258,6 +276,7 @@ def main():
             case "cannonball arc":
                 render_cannonball_motion(cannon_barrel_and_angle, hori_init_vel, vert_init_vel, cannon_opening_offset, -9.8, frames_elapsed)
                 frames_elapsed += 1
+
                 if (frames_elapsed > FPS and keys_pressed[pygame.K_r]) or frames_elapsed > FPS * 20:
                     tracer_dots.clear()
                     app_state = 'aiming and config'
