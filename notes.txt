@@ -1,13 +1,14 @@
 if cannon points directly up or down, the whole game freezes (fixed)
 
 to do:
-- dynamic barrel length that affects firing
+- dynamic barrel length that affects firing in [aiming and config render]*
+- fine tune the position when it leaves the barrel (not needed if line 11 is implemented) ** 
 
 future plans:
 - add recoil to cannon
 - compile to .exe 
-- change calculations to include impulse/momentum
+- change calculations to include impulse/momentum (maybe not actually)
+- ! make the cannonball actually move out of the cannon instead of just calculating the time and pausing [new function during firing app state]
 
 bug checklist:
- - cannon doesnt fire when shooting straight up, even with enough force
  - number input does will display when using sliders (ITS A FEATURE!)

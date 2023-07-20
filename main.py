@@ -26,7 +26,7 @@ GRID_BG = pygame.image.load(os.path.join('Assets', 'grid-background-1280.png'))
 # initialize sprites -----------------------------------------------------------------------------------
 WHEEL = pygame.image.load(os.path.join('Assets', 'cannon-wheel-transparent.png')).convert_alpha()
 WHEEL = pygame.transform.scale(WHEEL, (50, 50))
-BARREL = pygame.image.load(os.path.join('Assets', 'cannon-barrel-transparent.png')).convert_alpha()
+BARREL = pygame.image.load(os.path.join('Assets', 'cannon-barrel.png')).convert_alpha()
 BARREL = pygame.transform.scale(BARREL, (120, 120))
 CANNONBALL = pygame.image.load(os.path.join('Assets', 'cannonball-transparent.png')).convert_alpha()
 CANNONBALL = pygame.transform.scale(CANNONBALL, (20, 20))
@@ -64,7 +64,7 @@ cannonball_mass_text = pygame.font.SysFont('arial', 22)
 gravity_text = pygame.font.SysFont('arial', 22)
 barrel_length_text = pygame.font.SysFont('arial', 22)
 
-force_number_input = gui.Number_Input((350, 20), (100, 30), 'arial', 22, GRAYISH, WHITISH, 5000, 5)
+force_number_input = gui.Number_Input((350, 20), (100, 30), 'arial', 22, GRAYISH, WHITISH, 1000, 5)
 force_input_note = pygame.font.SysFont('arial', 14)
 
 # sounds -----------------------------------------------------------------------------------
@@ -132,7 +132,10 @@ def calc_prereq_forces(gravity, force, cb_mass, barrel_length, angle):
     vert_force_applied = force * math.sin(a.conv_deg_to_rad(angle))
     vert_weight = f.calculate_forces('f', 0, cb_mass, gravity)
     normal_force = f.calculate_forces('f', 0, cb_mass, gravity) * math.cos(a.conv_deg_to_rad(angle)) # is the cannon's angle the right one
+    print(f"Weight: {vert_weight}")
+    print(f'Normal force: {normal_force}')
     net_vert_force = vert_force_applied + normal_force - vert_weight
+    print(f"net vert force: {net_vert_force}")
     # does the bug occur because once the cb leaves the ground, there is no longer any normal force acting on it?
     # get back to this
 
@@ -140,10 +143,15 @@ def calc_prereq_forces(gravity, force, cb_mass, barrel_length, angle):
     hori_force_applied = force * math.cos(a.conv_deg_to_rad(angle))
     hori_weight = f.calculate_forces('f', 0, cb_mass, gravity) * math.sin(a.conv_deg_to_rad(angle))
     net_hori_force = hori_force_applied - hori_weight # - 0 (force of friction)
+    print(f'''
+        hori force applied: {hori_force_applied}
+        hori weight: {hori_weight}
+        net hori force: {net_hori_force}
+          ''')
 
     # find net acceleration
     # if forces not great enough, dont launch
-    if net_vert_force < 0 or net_hori_force < 0:
+    if net_vert_force < 0 and net_hori_force < 0:
         return (-1, -1)
     else: 
         net_force = math.sqrt(math.pow(net_vert_force, 2) + math.pow(force * math.cos(angle), 2))
@@ -169,7 +177,7 @@ def calc_prereq_forces(gravity, force, cb_mass, barrel_length, angle):
         return (exit_cannon_time, exit_cannon_vel)
 
 # render motion of cannonball -----------------------------------------------------------------------------------
-def render_cannonball_motion(cannon_barrel_copy_list, hori_vel, vert_vel, cannon_opening_pos, gravity, frames_elapsed):
+def render_cannonball_motion(cannon_barrel_copy_list, hori_vel, vert_vel, cannon_opening_pos, gravity, frames_elapsed, dots_per_sec):
     # calculate displacement
     time = (frames_elapsed / FPS)
     vertical_displacement = k.calc_d_using_vo_a_and_t(vert_vel, gravity, time) * pixels_to_meters_rate + 10
@@ -177,9 +185,6 @@ def render_cannonball_motion(cannon_barrel_copy_list, hori_vel, vert_vel, cannon
     # the -10 is to center the cannonball bc it starts from top left (width/height of cb, also its diameter)
 
     cb_new_pos = (cannon_opening_pos[0] + horizontal_displacement, cannon_opening_pos[1] - vertical_displacement)
-    # add one every quarter second (15 frames)
-    if time % 0.25 == 0:
-        tracer_dots.append((cb_new_pos[0] + 10, cb_new_pos[1] + 10))
 
     # render cannonball based on cannon's position and horizontal and vertical displacement
     WINDOW.blit(CANNONBALL, cb_new_pos)
@@ -189,9 +194,18 @@ def render_cannonball_motion(cannon_barrel_copy_list, hori_vel, vert_vel, cannon
     WINDOW.blit(cannon_barrel_copy, (BARREL_CENTER[0] - int(cannon_barrel_copy.get_width() / 2), BARREL_CENTER[1] - int(cannon_barrel_copy.get_height() / 2)))
     WINDOW.blit(WHEEL, (BARREL_CENTER[0] - 25, BARREL_CENTER[1] - 20))
 
+    # add one every quarter second (15 frames)
+    if time % (1 / dots_per_sec) == 0: # cheking anyt time under every 0.25 seconds doesnt work for whatever reason
+        tracer_dots.append([cb_new_pos[0] + 10, cb_new_pos[1] + 10, (200, 0, 0), 3])
+        if time == round(time):
+            tracer_dots[-1][2] = (0, 0, 200) 
+            tracer_dots[-1][3] = 4 
+            
+
     # keep drawing all tracer dots
-    for coordinate in tracer_dots:
-        pygame.draw.circle(WINDOW, (200, 0, 0), coordinate, 3)
+    for tracer_data in tracer_dots:
+        pygame.draw.circle(WINDOW, tracer_data[2], (tracer_data[0], tracer_data[1]), tracer_data[3])
+    
 
 # update performance data on the bottom -----------------------------------------------------------------------------------
 def update_display_data(clock, frames_elapsed, angle):
@@ -274,7 +288,7 @@ def main():
                 
                 app_state = 'cannonball arc'
             case "cannonball arc":
-                render_cannonball_motion(cannon_barrel_and_angle, hori_init_vel, vert_init_vel, cannon_opening_offset, -9.8, frames_elapsed)
+                render_cannonball_motion(cannon_barrel_and_angle, hori_init_vel, vert_init_vel, cannon_opening_offset, -9.8, frames_elapsed, 4)
                 frames_elapsed += 1
 
                 if (frames_elapsed > FPS and keys_pressed[pygame.K_r]) or frames_elapsed > FPS * 20:
