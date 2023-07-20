@@ -26,10 +26,12 @@ GRID_BG = pygame.image.load(os.path.join('Assets', 'grid-background-1280.png'))
 # initialize sprites -----------------------------------------------------------------------------------
 WHEEL = pygame.image.load(os.path.join('Assets', 'cannon-wheel-transparent.png')).convert_alpha()
 WHEEL = pygame.transform.scale(WHEEL, (50, 50))
-BARREL = pygame.image.load(os.path.join('Assets', 'cannon-barrel.png')).convert_alpha()
+BARREL = pygame.image.load(os.path.join('Assets', 'cannon-barrel-transparent.png')).convert_alpha()
 BARREL = pygame.transform.scale(BARREL, (120, 120))
 CANNONBALL = pygame.image.load(os.path.join('Assets', 'cannonball-transparent.png')).convert_alpha()
-CANNONBALL = pygame.transform.scale(CANNONBALL, (20, 20))
+CANNONBALL_SIZE = 20
+CANNONBALL = pygame.transform.scale(CANNONBALL, (CANNONBALL_SIZE, CANNONBALL_SIZE))
+CANNONBALL_HALF_OF_SIZE = CANNONBALL_SIZE // 2
 
 BARREL_CENTER = (120, 600)
 
@@ -56,7 +58,7 @@ WHITE = (255, 255, 255)
 
 cannonball_mass_slider_input = gui.Slider((400, 120), (100, 20), 0.1, 0, 100, WHITISH, GRAYISH, 1)
 gravity_slider_input = gui.Slider((800, 50), (100, 20), 0.49, 0, 20, WHITISH, GRAYISH, 1)
-barrel_length_slider_input = gui.Slider((800, 120), (100, 20), 0.5, 0, 10, WHITISH, GRAYISH, 1)
+barrel_length_slider_input = gui.Slider((800, 120), (100, 20), 0.25, 0, 20, WHITISH, GRAYISH, 1)
 user_slider_inputs = [cannonball_mass_slider_input, gravity_slider_input, barrel_length_slider_input]
 
 force_text = pygame.font.SysFont('arial', 22)
@@ -75,7 +77,7 @@ INVALID_INPUT_SOUND = pygame.mixer.Sound(os.path.join('Assets', 'invalid-input.m
 FPS = 60
 BACKGROUND_COLOR = (100, 100, 100)
 GREENISH = (105, 150, 62)
-pixels_to_meters_rate = 6.05 # 11.2 is the # of pixelsp for every simulated meter
+pixels_to_meters_rate = 6.0 # this is rate of the number of pixels for every simulated meter
 
 # update background -----------------------------------------------------------------------------------
 def update_background():
@@ -83,22 +85,25 @@ def update_background():
     WINDOW.blit(GRID_BG, (0, 0))
 
 # update cannon when aiming -----------------------------------------------------------------------------------
-def aiming_and_config_render(app_state, mouse, BARREL):
+def aiming_and_config_render(app_state, mouse, BARREL, barrel_length):
     ray_adj = mouse[0] - BARREL_CENTER[0]
     # switch coordinates to read that y-axis is at the bottom
     ray_opp = (WINDOW.get_height() - mouse[1]) - (WINDOW.get_height() - BARREL_CENTER[1]) # offset due to image translation + whitespace
-    theta = math.atan2(ray_opp, ray_adj) * (180 / math.pi) # angle of cannon
+    theta = a.conv_rad_to_deg(math.atan2(ray_opp, ray_adj)) # angle of cannon
     
     # theta cannot be greater than 90 or less than 0
     theta = min(theta, 90)
     theta = max(theta, 0)
-    barrel_copy = pygame.transform.rotate(BARREL, theta)
+    barrel_copy = pygame.transform.scale(BARREL, (barrel_length * (pixels_to_meters_rate + (19/17)) * 2, 120))
+    # +18/17 to compensate for whitespace on the actual image file (170 -> 180) and the centering distortion (+1/17), maybe thats how it works, idk, looks good tho
+    # *2 because thats how the file works (other side is whitespace)
+    barrel_copy = pygame.transform.rotate(barrel_copy, theta)
 
     WINDOW.blit(barrel_copy, (BARREL_CENTER[0] - int(barrel_copy.get_width() / 2), BARREL_CENTER[1] - int(barrel_copy.get_height() / 2)))
     # basically, whenever rotating the object creates a surface on the back that completely covers the rotated object
     WINDOW.blit(WHEEL, (BARREL_CENTER[0] - 25, BARREL_CENTER[1] - 20))
 
-    return [barrel_copy, theta]
+    return (barrel_copy, theta)
 
 # render user input elements during aiming and config -----------------------------------------------------------------------------------
 def render_inputs(mouse_pos, mouse_pressed, event):
@@ -174,14 +179,26 @@ def calc_prereq_forces(gravity, force, cb_mass, barrel_length, angle):
 
         ''')
 
-        return (exit_cannon_time, exit_cannon_vel)
+        return ((exit_cannon_time, exit_cannon_vel), net_force, net_accel, angle)
+    
+def render_cannonball_exiting_cannon(acceleration, angle, barrel_length, barrel_center, frames_elapsed):
+    time_elapsed = frames_elapsed / FPS
+
+    vec_displacement = k.calc_d_using_vo_a_and_t(0, acceleration, time_elapsed)
+    hori_displacement = vec_displacement * math.cos(a.conv_deg_to_rad(angle))
+    vert_displacement = vec_displacement * math.sin(a.conv_deg_to_rad(angle))
+
+    cb_new_pos = (BARREL_CENTER[0] + hori_displacement - CANNONBALL_HALF_OF_SIZE, BARREL_CENTER[1] - vert_displacement - CANNONBALL_HALF_OF_SIZE)
+    WINDOW.blit(CANNONBALL, (cb_new_pos))
+
+    return (vec_displacement >= barrel_length, cb_new_pos)
 
 # render motion of cannonball -----------------------------------------------------------------------------------
 def render_cannonball_motion(cannon_barrel_copy_list, hori_vel, vert_vel, cannon_opening_pos, gravity, frames_elapsed, dots_per_sec):
     # calculate displacement
     time = (frames_elapsed / FPS)
-    vertical_displacement = k.calc_d_using_vo_a_and_t(vert_vel, gravity, time) * pixels_to_meters_rate + 10
-    horizontal_displacement = k.calculate_d_v_or_t('d', hori_vel, 0, time) * pixels_to_meters_rate - 10
+    vertical_displacement = k.calc_d_using_vo_a_and_t(vert_vel, gravity, time) * pixels_to_meters_rate + CANNONBALL_HALF_OF_SIZE
+    horizontal_displacement = k.calculate_d_v_or_t('d', hori_vel, 0, time) * pixels_to_meters_rate - CANNONBALL_HALF_OF_SIZE
     # the -10 is to center the cannonball bc it starts from top left (width/height of cb, also its diameter)
 
     cb_new_pos = (cannon_opening_pos[0] + horizontal_displacement, cannon_opening_pos[1] - vertical_displacement)
@@ -252,9 +269,10 @@ def main():
                 if force_input_val == "" or force_input_val < 0 or force_input_val > 10_000:
                     INVALID_INPUT_SOUND.play()
                 else:
-                    cb_exit_time_and_vel = calc_prereq_forces(gravity=gravity_slider_input.get_value(), force=force_input_val, cb_mass=cannonball_mass_slider_input.get_value(), barrel_length=5, angle=barrel_angle) # test values
-                    print(f'cb_exit_time_and_vel: {cb_exit_time_and_vel}')
-                    if cb_exit_time_and_vel != (-1, -1):
+                    cannonball_physics_data = calc_prereq_forces(gravity=gravity_slider_input.get_value(), force=force_input_val, cb_mass=cannonball_mass_slider_input.get_value(), barrel_length=barrel_length_slider_input.get_value(), angle=barrel_angle) # test values
+                    # ^ ((exit_cannon_time, exit_cannon_vel), net_force, net_accel, angle)
+                    print(f'cannonball_physics_data: {cannonball_physics_data}')
+                    if cannonball_physics_data[0] != (-1, -1):
                         app_state = 'firing'
 
         update_background()
@@ -263,8 +281,9 @@ def main():
         match app_state:
             case "aiming and config":
                 frames_elapsed = 0
-                cannon_barrel_and_angle = aiming_and_config_render(app_state, mouse, BARREL)
-                barrel_angle = cannon_barrel_and_angle[1]
+                barrel_copy_and_angle = aiming_and_config_render(app_state, mouse, BARREL, barrel_length_slider_input.get_value())
+
+                barrel_angle = barrel_copy_and_angle[1]
 
                 render_inputs(mouse, mouse_pressed, pygame.event.get())
             case "firing":
@@ -273,22 +292,24 @@ def main():
 
                 CANNON_SHOOT_SOUND.play()
 
-                pygame.time.delay(int(cb_exit_time_and_vel[0] * 1000)) # simulate cannonball firing out of cannon by just waiting for it to come out lol 
-                # whichever velocity = cannonball's exit velocity * math.trig(angle of cannon)
-                hori_init_vel = cb_exit_time_and_vel[1] * math.cos(barrel_angle * math.pi / 180)
-                vert_init_vel = cb_exit_time_and_vel[1] * math.sin(barrel_angle * math.pi / 180)
+                if render_cannonball_exiting_cannon(cannonball_physics_data[2], cannonball_physics_data[3], barrel_length_slider_input.get_value(), BARREL_CENTER, frames_elapsed)[0]:
+                    # ^ (returns boolean; whether the displacement is greater or equal to barrel length, (new displacement of cannonball x, y))
+                    hori_init_vel = cannonball_physics_data[0][1] * math.cos(barrel_angle * math.pi / 180)
+                    vert_init_vel = cannonball_physics_data[0][1] * math.sin(barrel_angle * math.pi / 180)
 
+                    cannon_exit_pos = render_cannonball_exiting_cannon[1]
+                    frame_where_cb_exits_cannon = frames_elapsed
+                    app_state = 'cannonball arc'
+                
+                # whichever velocity = cannonball's exit velocity * math.trig(angle of cannon)
                 print(f'''
                     horizontal exit velocity: {hori_init_vel}   
                     vertical exit velocity: {vert_init_vel}
                 ''')
+                frames_elapsed += 1
 
-                barrel_relative_length = int(BARREL.get_width() / 2)
-                cannon_opening_offset = (BARREL_CENTER[0] + int(barrel_relative_length * math.cos(a.conv_deg_to_rad(barrel_angle))), BARREL_CENTER[1] - int(barrel_relative_length * math.sin(a.conv_deg_to_rad(barrel_angle))), )
-                
-                app_state = 'cannonball arc'
             case "cannonball arc":
-                render_cannonball_motion(cannon_barrel_and_angle, hori_init_vel, vert_init_vel, cannon_opening_offset, -9.8, frames_elapsed, 4)
+                render_cannonball_motion(barrel_copy_and_angle, hori_init_vel, vert_init_vel, cannon_exit_pos, gravity_slider_input.get_value(), frames_elapsed - frame_where_cb_exits_cannon, 4)
                 frames_elapsed += 1
 
                 if (frames_elapsed > FPS and keys_pressed[pygame.K_r]) or frames_elapsed > FPS * 20:
