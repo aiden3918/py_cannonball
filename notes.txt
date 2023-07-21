@@ -1,34 +1,11 @@
 if cannon points directly up or down, the whole game freezes (fixed)
 
 to do:
-
-- add extra information during cannonball arc (using black font)- DONE
-    - exit velocity
-    - time it took to exit cannon
-    - acceleration
-    - net force
-    
-    - horizontal force applied
-    - net horizontal force
-    - horizontal normal force
-
-    - vertical force applied
-    - vertical weight
-    - vertical normal force
-    - net vertical force
-
-    HOW TO DO:
-    1. cannonball_physics_data[1:3] will each store info on a tuple
-    2.  make a text element tuple
-    3. traverse the tuple to render and blit all of the elements with corresponding text
-
-- research and verify how normal force works for spherical objects !!! * - DONE?
-- add more info page that describes how the app works and stuff (cannot only be clicked during aiming and config app state, also switch app state on click) ** - DONE
-- add option to disable perf data and cb exit data *** - DONE
+- compile to .exe *
+- push to gh **
 
 future plans:
 - add recoil to cannon / change calculations to include impulse/momentum (maybe not actually)
-- compile to .exe 
 
 bug checklist:
- - number input does will display when using sliders (ITS A FEATURE!)
+ - number input does not display when using sliders (ITS A FEATURE!)
