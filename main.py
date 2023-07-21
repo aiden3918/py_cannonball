@@ -50,6 +50,8 @@ USER_PANEL.fill((150, 150, 150))
 WHITISH = (200, 200, 200)
 GRAYISH = (100, 100, 100)
 WHITE = (255, 255, 255)
+GREENISH = (105, 150, 62)
+BLACK = (0, 0, 0)
 
 cannonball_mass_slider_input = gui.Slider((400, 120), (100, 20), 0.1, 0, 100, WHITISH, GRAYISH, 1)
 gravity_slider_input = gui.Slider((800, 50), (100, 20), 0.49, 0, 20, WHITISH, GRAYISH, 1)
@@ -58,8 +60,16 @@ user_slider_inputs = [cannonball_mass_slider_input, gravity_slider_input, barrel
 
 USER_INPUT_FONT = pygame.font.SysFont('arial', 22)
 
-force_number_input = gui.Number_Input((350, 20), (100, 30), 'arial', 22, GRAYISH, WHITISH, 1000, 5)
-force_input_note = pygame.font.SysFont('arial', 14)
+FORCE_NUM_INPUT = gui.Number_Input((350, 20), (100, 30), 'arial', 22, GRAYISH, WHITISH, 1000, 5)
+SUBTEXT_FONT = pygame.font.SysFont('arial', 14)
+
+SHOW_PERF_STATS_CHECKBOX = gui.Checkbox((150, 20), 20, GREENISH)
+SHOW_CB_EXIT_DATA_CHECKBOX = gui.Checkbox((150, 45), 20, GREENISH)
+
+# other settings
+MORE_INFO_BTN = gui.Button(os.path.join('Assets', 'question-mark.png'), (1220, 10), (50, 50))
+MORE_INFO = pygame.image.load(os.path.join('Assets', 'description.png'))
+RETURN_INFO_TEXT = USER_INPUT_FONT.render("Press any key to continue...", 1, BLACK)
 
 # sounds -----------------------------------------------------------------------------------
 CANNON_SHOOT_SOUND = pygame.mixer.Sound(os.path.join('Assets', 'cannon-shoot.mp3'))
@@ -68,7 +78,6 @@ INVALID_INPUT_SOUND = pygame.mixer.Sound(os.path.join('Assets', 'invalid-input.m
 # some constants and variables -----------------------------------------------------------------------------------
 FPS = 60
 BACKGROUND_COLOR = (100, 100, 100)
-GREENISH = (105, 150, 62)
 pixels_to_meters_rate = 6.0 # this is rate of the number of pixels for every simulated meter
 dots_per_sec = 4
 
@@ -76,10 +85,11 @@ dots_per_sec = 4
 def update_background():
     WINDOW.fill(BACKGROUND_COLOR)
     WINDOW.blit(GRID_BG, (0, 0))
-    WINDOW.blit(USER_PANEL, (200, 0))
 
 # update cannon when aiming -----------------------------------------------------------------------------------
 def aiming_and_config_render(app_state, mouse, BARREL, barrel_length):
+    WINDOW.blit(USER_PANEL, (200, 0))
+
     ray_adj = mouse[0] - BARREL_CENTER[0]
     # switch coordinates to read that y-axis is at the bottom
     ray_opp = (WINDOW.get_height() - mouse[1]) - (WINDOW.get_height() - BARREL_CENTER[1]) # offset due to image translation + whitespace
@@ -93,6 +103,10 @@ def aiming_and_config_render(app_state, mouse, BARREL, barrel_length):
     # *2 because thats how the file works (other side is whitespace)
     barrel_copy = pygame.transform.rotate(barrel_copy, theta)
 
+    rounded_theta = round(theta * 100) / 100
+    ANGLE_DISPLAY = ANGLE_TEXT.render(f"Angle: {rounded_theta}°", 1, (0, 0, 0))
+    WINDOW.blit(ANGLE_DISPLAY, (125, 615))
+
     WINDOW.blit(barrel_copy, (BARREL_CENTER[0] - int(barrel_copy.get_width() / 2), BARREL_CENTER[1] - int(barrel_copy.get_height() / 2)))
     # basically, whenever rotating the object creates a surface on the back that completely covers the rotated object
     WINDOW.blit(WHEEL, (BARREL_CENTER[0] - 25, BARREL_CENTER[1] - 20))
@@ -102,7 +116,7 @@ def aiming_and_config_render(app_state, mouse, BARREL, barrel_length):
 # render user input elements during aiming and config -----------------------------------------------------------------------------------
 def render_inputs(mouse_pos, mouse_pressed, event):
 
-    force_number_input.update(WINDOW, pygame.event.get())
+    FORCE_NUM_INPUT.update(WINDOW, pygame.event.get())
     
     for input in user_slider_inputs:
         input.update(WINDOW, mouse_pos, mouse_pressed)
@@ -112,13 +126,27 @@ def render_inputs(mouse_pos, mouse_pressed, event):
     gravity_rendered = USER_INPUT_FONT.render(f'Gravity: {gravity_slider_input.get_value()} m/s^2', 1, WHITE)
     barrel_length_rendered = USER_INPUT_FONT.render(f'Barrel Length: {barrel_length_slider_input.get_value()} m', 1, WHITE)
 
-    force_input_note_text = force_input_note.render('Note: min = 0, max = 10,000', 1, WHITE)
+    SUBTEXT_FONT_text = SUBTEXT_FONT.render('Note: min = 0, max = 10,000', 1, WHITE)
 
-    WINDOW.blit(force_text_rendered, (force_number_input.pos[0] - 60, force_number_input.pos[1]))
+    SHOW_PERF_STATS_CHECKBOX.listen(mouse_pressed)
+    SHOW_PERF_STATS_CHECKBOX.update(WINDOW)
+    show_perf_stats_text = SUBTEXT_FONT.render("Show performance stats:", 1, SHOW_PERF_STATS_CHECKBOX.color)
+
+    SHOW_CB_EXIT_DATA_CHECKBOX.listen(mouse_pressed)
+    SHOW_CB_EXIT_DATA_CHECKBOX.update(WINDOW)
+    show_cb_exit_data_text = SUBTEXT_FONT.render("Show cannonball exit data:", 1, SHOW_CB_EXIT_DATA_CHECKBOX.color)
+
+    WINDOW.blit(force_text_rendered, (FORCE_NUM_INPUT.pos[0] - 60, FORCE_NUM_INPUT.pos[1]))
     WINDOW.blit(cb_mass_rendered, (cannonball_mass_slider_input.pos[0] - (cb_mass_rendered.get_width() // 2), cannonball_mass_slider_input.pos[1] - 40))
     WINDOW.blit(gravity_rendered, (gravity_slider_input.pos[0] - (gravity_rendered.get_width() // 2), gravity_slider_input.pos[1] - 40))
     WINDOW.blit(barrel_length_rendered, (barrel_length_slider_input.pos[0] - (barrel_length_rendered.get_width() // 2), barrel_length_slider_input.pos[1] - 40))
-    WINDOW.blit(force_input_note_text, (force_number_input.pos[0] - 30, force_number_input.pos[1] + 32))
+    WINDOW.blit(SUBTEXT_FONT_text, (FORCE_NUM_INPUT.pos[0] - 30, FORCE_NUM_INPUT.pos[1] + 32))
+
+    WINDOW.blit(show_perf_stats_text, (SHOW_PERF_STATS_CHECKBOX.pos[0] - 140, SHOW_PERF_STATS_CHECKBOX.pos[1]))
+    WINDOW.blit(show_cb_exit_data_text, (SHOW_CB_EXIT_DATA_CHECKBOX.pos[0] - 140, SHOW_CB_EXIT_DATA_CHECKBOX.pos[1]))
+
+    return MORE_INFO_BTN.update(WINDOW)
+        
 
 # calculate forces and information needed when user fires -----------------------------------------------------------------------------------
 # return time it would take for the cannonball to exit the cannon and the net velocity at which it will exit the cannon
@@ -129,10 +157,10 @@ def calc_prereq_forces(gravity, force, cb_mass, barrel_length, angle):
     # find net vertical force
     vert_force_applied = force * math.sin(a.conv_deg_to_rad(angle))
     vert_weight = f.calculate_forces('f', 0, cb_mass, gravity)
-    vert_normal_force = f.calculate_forces('f', 0, cb_mass, gravity) * math.cos(a.conv_deg_to_rad(angle)) # is the cannon's angle the right one
+    vert_normal_force = vert_weight * math.cos(a.conv_deg_to_rad(angle)) if angle != 90 else vert_weight # is the cannon's angle the right one
     print(f"Weight: {vert_weight}")
     print(f'vert normal force: {vert_normal_force}')
-    net_vert_force = vert_force_applied + vert_normal_force - vert_weight
+    net_vert_force = max(vert_force_applied + vert_normal_force - vert_weight, 0)
     print(f"net vert force: {net_vert_force}")
     # does the bug occur because once the cb leaves the ground, there is no longer any normal force acting on it?
     # get back to this
@@ -140,7 +168,7 @@ def calc_prereq_forces(gravity, force, cb_mass, barrel_length, angle):
     # find net horizontal force
     hori_force_applied = force * math.cos(a.conv_deg_to_rad(angle))
     hori_normal_force = f.calculate_forces('f', 0, cb_mass, gravity) * math.sin(a.conv_deg_to_rad(angle))
-    net_hori_force = hori_force_applied - hori_normal_force # - 0 (force of friction)
+    net_hori_force = max(hori_force_applied - hori_normal_force, 0) # - 0 (force of friction)
     print(f'''
         hori force applied: {hori_force_applied}
         hori normal force: {hori_normal_force}
@@ -149,10 +177,10 @@ def calc_prereq_forces(gravity, force, cb_mass, barrel_length, angle):
 
     # find net acceleration
     # if forces not great enough, dont launch
-    if net_vert_force < 0 and net_hori_force < 0:
+    if net_vert_force == 0 and net_hori_force == 0:
         return (-1, -1)
     else: 
-        net_force = math.sqrt(math.pow(net_vert_force, 2) + math.pow(force * math.cos(angle), 2))
+        net_force = math.sqrt(math.pow(net_vert_force, 2) + math.pow(net_hori_force, 2))
         net_accel = f.calculate_forces('a', net_force, gravity, 0)
 
         exit_cannon_vel = k.calc_vf_using_vo_a_and_d(0, net_accel, barrel_length)
@@ -176,6 +204,9 @@ def calc_prereq_forces(gravity, force, cb_mass, barrel_length, angle):
         return ((exit_cannon_time, exit_cannon_vel), net_force, net_accel, hori_force_applied, hori_normal_force, net_hori_force, vert_force_applied, vert_normal_force, vert_weight, net_vert_force, angle)
     
 def render_cannonball_exiting_cannon(acceleration, angle, barrel_length, frames_elapsed, dots_per_sec, cannon_barrel_copy_list):
+    if SHOW_CB_EXIT_DATA_CHECKBOX.active:
+        WINDOW.blit(USER_PANEL, (200, 0))
+
     time_elapsed = frames_elapsed / FPS
 
     # calculate displacement using net acceleration
@@ -190,8 +221,6 @@ def render_cannonball_exiting_cannon(acceleration, angle, barrel_length, frames_
     cannon_barrel_copy = cannon_barrel_copy_list[0]
     WINDOW.blit(cannon_barrel_copy, (BARREL_CENTER[0] - int(cannon_barrel_copy.get_width() / 2), BARREL_CENTER[1] - int(cannon_barrel_copy.get_height() / 2)))
     WINDOW.blit(WHEEL, (BARREL_CENTER[0] - 25, BARREL_CENTER[1] - 20))
-
-    WINDOW.blit(USER_PANEL, (200, 0))
 
     return (vec_displacement >= barrel_length * pixels_to_meters_rate, cb_new_pos)
 
@@ -219,26 +248,26 @@ def render_cannonball_motion(cannon_barrel_copy_list, hori_vel, vert_vel, cannon
 def render_cb_exit_data_text(cannonball_data_tuple):
     # the tuple in question: ^ ((exit_cannon_time, exit_cannon_vel), net_force, net_accel ||| hori_force_applied, hori_normal, net_hori_force, ||| vert_force_applied, vert_normal_force, vert_weight, net_vert_force, angle)
 
-    cb_exit_data_strs_list = []
-    # cb_exit_data_strs_list.append()
+    # return a list of the rendered text to traverse later
+    return [
+        CANNONBALL_PHYSICS_DATA_FONT.render(f'Cannonball exit time: {round(cannonball_data_tuple[0][0] * 100) / 100} s', 1, WHITE),
+        CANNONBALL_PHYSICS_DATA_FONT.render(f'Cannonball exit velocity: {round(cannonball_data_tuple[0][1] * 100) / 100} m/s', 1, WHITE),
+        CANNONBALL_PHYSICS_DATA_FONT.render(f'Cannonball net force: {round(cannonball_data_tuple[1] * 100) / 100} N', 1, WHITE),
+        CANNONBALL_PHYSICS_DATA_FONT.render(f'Cannonball net acceleration: {round(cannonball_data_tuple[2] * 100) / 100} m/s^2', 1, WHITE),
 
-    cb_exit_data_strs_list.append(CANNONBALL_PHYSICS_DATA_FONT.render(f'Cannonball exit time: {round(cannonball_data_tuple[0][0] * 100) / 100} s', 1, WHITE))
-    cb_exit_data_strs_list.append(CANNONBALL_PHYSICS_DATA_FONT.render(f'Cannonball exit velocity: {round(cannonball_data_tuple[0][1] * 100) / 100} m/s', 1, WHITE))
-    cb_exit_data_strs_list.append(CANNONBALL_PHYSICS_DATA_FONT.render(f'Cannonball net force: {round(cannonball_data_tuple[1] * 100) / 100} N', 1, WHITE))
-    cb_exit_data_strs_list.append(CANNONBALL_PHYSICS_DATA_FONT.render(f'Cannonball net acceleration: {round(cannonball_data_tuple[2] * 100) / 100} m/s^2', 1, WHITE))
-
-    cb_exit_data_strs_list.append(CANNONBALL_PHYSICS_DATA_FONT.render(f'Horizontal force applied: {round(cannonball_data_tuple[3] * 100) / 100} N', 1, WHITE))
-    cb_exit_data_strs_list.append(CANNONBALL_PHYSICS_DATA_FONT.render(f'Horizontal normal force: {round(cannonball_data_tuple[4] * 100) / 100} N', 1, WHITE))
-    cb_exit_data_strs_list.append(CANNONBALL_PHYSICS_DATA_FONT.render(f'Net horizontal force: {round(cannonball_data_tuple[5] * 100) / 100} N', 1, WHITE))
-
-    cb_exit_data_strs_list.append(CANNONBALL_PHYSICS_DATA_FONT.render(f'Vertical force applied: {round(cannonball_data_tuple[6]* 100) / 100} N', 1, WHITE))
-    cb_exit_data_strs_list.append(CANNONBALL_PHYSICS_DATA_FONT.render(f'Vertical normal force: {round(cannonball_data_tuple[7] * 100) / 100} N', 1, WHITE))
-    cb_exit_data_strs_list.append(CANNONBALL_PHYSICS_DATA_FONT.render(f'Vertical weight: {round(cannonball_data_tuple[8] * 100) / 100} N', 1, WHITE))
-    cb_exit_data_strs_list.append(CANNONBALL_PHYSICS_DATA_FONT.render(f'Net vertical force: {round(cannonball_data_tuple[9] * 100) / 100} N', 1, WHITE))
-    
-    return cb_exit_data_strs_list
+        CANNONBALL_PHYSICS_DATA_FONT.render(f'Horizontal force applied: {round(cannonball_data_tuple[3] * 100) / 100} N', 1, WHITE),
+        CANNONBALL_PHYSICS_DATA_FONT.render(f'Net horizontal force: {round(cannonball_data_tuple[5] * 100) / 100} N', 1, WHITE),
+        CANNONBALL_PHYSICS_DATA_FONT.render(f'Net horizontal force: {round(cannonball_data_tuple[5] * 100) / 100} N', 1, WHITE),
+        
+        CANNONBALL_PHYSICS_DATA_FONT.render(f'Vertical force applied: {round(cannonball_data_tuple[6]* 100) / 100} N', 1, WHITE),
+        CANNONBALL_PHYSICS_DATA_FONT.render(f'Vertical normal force: {round(cannonball_data_tuple[7] * 100) / 100} N', 1, WHITE),
+        CANNONBALL_PHYSICS_DATA_FONT.render(f'Vertical weight: {round(cannonball_data_tuple[8] * 100) / 100} N', 1, WHITE),
+        CANNONBALL_PHYSICS_DATA_FONT.render(f'Net vertical force: {round(cannonball_data_tuple[9] * 100) / 100} N', 1, WHITE)
+        ]
 
 def draw_cb_exit_data_text(cb_exit_data_strs_list):
+    WINDOW.blit(USER_PANEL, (200, 0))
+
     x = 220
     y = 25
     for i in range(0, 4):
@@ -265,13 +294,9 @@ def update_display_data(clock, frames_elapsed, angle):
     SECONDS_SINCE_EVENT_DISPLAY = PERF_DATA_FONT.render(f'Seconds since cb launch: {round(1000 * frames_elapsed / FPS) / 1000}', 1, GREENISH)
     FRAMES_SINCE_EVENT_DISPLAY = PERF_DATA_FONT.render(f'Frames since cb launch: {frames_elapsed}', 1, GREENISH)
     
-    rounded_angle = round(angle * 100) / 100
-    ANGLE_DISPLAY = ANGLE_TEXT.render(f"Angle: {rounded_angle}°", 1, (0, 0, 0))
-
     WINDOW.blit(FPS_DISPLAY, (20, 660))
     WINDOW.blit(SECONDS_SINCE_EVENT_DISPLAY, (20, 690))
     WINDOW.blit(FRAMES_SINCE_EVENT_DISPLAY, (300, 660))
-    WINDOW.blit(ANGLE_DISPLAY, (125, 615))
 
 def update_tracers(dots_per_sec, time, cb_new_pos):
     # add one every quarter second (15 frames)
@@ -285,6 +310,15 @@ def update_tracers(dots_per_sec, time, cb_new_pos):
     for tracer_data in tracer_dots:
         pygame.draw.circle(WINDOW, tracer_data[2], (tracer_data[0], tracer_data[1]), tracer_data[3])
 
+def render_more_info():
+    more_info_rect = MORE_INFO.get_rect()
+    half_of_more_info =  (more_info_rect.width // 2, more_info_rect.height // 2)
+
+    return_info_text_rect = RETURN_INFO_TEXT.get_rect()
+    half_of_return_info = (return_info_text_rect.width // 2, return_info_text_rect.height // 2)
+
+    WINDOW.blit(MORE_INFO, (WINDOW_CENTER[0] - half_of_more_info[0], WINDOW_CENTER[1] - half_of_more_info[1]))
+    WINDOW.blit(RETURN_INFO_TEXT, (WINDOW_CENTER[0] - half_of_return_info[0], 650))
 
 # main function -----------------------------------------------------------------------------------
 def main():
@@ -307,11 +341,14 @@ def main():
                 run = False
             if event.type == pygame.MOUSEBUTTONDOWN:
                 print(mouse)
+            if event.type == pygame.KEYDOWN:
+                if app_state == 'more info':
+                    app_state = 'aiming and config'
 
         if keys_pressed[pygame.K_SPACE]:
             if app_state == 'aiming and config':
 
-                force_input_val = force_number_input.get_value()
+                force_input_val = FORCE_NUM_INPUT.get_value()
                 if force_input_val == "" or force_input_val < 0 or force_input_val > 10_000:
                     INVALID_INPUT_SOUND.play()
                 else:
@@ -320,7 +357,7 @@ def main():
                     print(f'cannonball_physics_data: {cannonball_physics_data}')
                     if cannonball_physics_data[0] != (-1, -1):
                         CANNON_SHOOT_SOUND.play()
-                        force_number_input.selected = False
+                        FORCE_NUM_INPUT.selected = False
                         app_state = 'firing'
 
         update_background()
@@ -334,7 +371,10 @@ def main():
 
                 barrel_angle = barrel_copy_and_angle[1]
 
-                render_inputs(mouse, mouse_pressed, pygame.event.get())
+                if render_inputs(mouse, mouse_pressed, pygame.event.get()):
+                    app_state = 'more info'
+            case "more info":
+                render_more_info()
             case "firing":
 
                 # (returns boolean; whether the displacement is greater or equal to barrel length, (new displacement of cannonball x, y))
@@ -355,19 +395,24 @@ def main():
                     app_state = 'cannonball arc'
 
                     cb_exit_data_strs_list = render_cb_exit_data_text(cannonball_physics_data)
+                    tracer_dots.append([cb_exiting_cannon_data[1][0] + CANNONBALL_HALF_OF_SIZE, cb_exiting_cannon_data[1][1] + CANNONBALL_HALF_OF_SIZE, (0, 0, 200), 4])
                 
                 frames_elapsed += 1
 
             case "cannonball arc":
                 render_cannonball_motion(barrel_copy_and_angle, hori_init_vel, vert_init_vel, cannon_exit_pos, -gravity_slider_input.get_value(), frames_elapsed - frame_where_cb_exits_cannon, dots_per_sec)
-                draw_cb_exit_data_text(cb_exit_data_strs_list)
+                
+                if SHOW_CB_EXIT_DATA_CHECKBOX.active:
+                    draw_cb_exit_data_text(cb_exit_data_strs_list)
+
                 frames_elapsed += 1
 
                 if (frames_elapsed > FPS and keys_pressed[pygame.K_r]) or frames_elapsed > FPS * 20:
                     tracer_dots.clear()
                     app_state = 'aiming and config'
         
-        update_display_data(clock, frames_elapsed, barrel_angle)
+        if SHOW_PERF_STATS_CHECKBOX.active:
+            update_display_data(clock, frames_elapsed, barrel_angle)
 
         pygame.display.update()
 

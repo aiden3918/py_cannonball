@@ -6,12 +6,13 @@ number_keys_list = [pygame.K_0, pygame.K_1, pygame.K_2, pygame.K_3, pygame.K_4, 
 
 # create button classes to use in game
 class Button():
-    def __init__(self, x: int, y: int, image, scale: float) -> None: 
-        width = image.get_width()
-        height = image.get_height()
-        self.image = pygame.transform.scale(image, (int(width * scale), int(height * scale)))
+    def __init__(self, image, pos: tuple, size: tuple) -> None: 
+        self.image = pygame.image.load(image)
+
+        self.image = pygame.transform.scale(self.image, (int(size[0]), int(size[1])))
+
         self.rect = self.image.get_rect() # hitbox
-        self.rect.topleft = (x, y)
+        self.rect.topleft = pos
         self.clicked = False
 
     def update(self, window):
@@ -27,7 +28,7 @@ class Button():
         if pygame.mouse.get_pressed()[0] == 0:
             self.clicked = False
 
-        window.blit(self.image, (self.rect.x, self.rect.y))
+        window.blit(self.image, self.rect.topleft)
         return pressed
 
 
@@ -115,3 +116,36 @@ class Slider():
 
         rounding = math.pow(10, self.rounded_to_nearest_decimal)
         return round(((current_val / val_range) * (self.max_val - self.min_val) + self.min_val) * rounding) / rounding
+
+class Checkbox():
+    def __init__(self, pos: tuple, side_length: int, color: tuple) -> None:
+        self.pos = pos
+        self.side_length = side_length
+        self.color = color
+
+        self.active = False
+        self.outer_rect = pygame.Rect(self.pos[0], self.pos[1], self.side_length, self.side_length)
+        self.inner_rect = pygame.Rect(self.pos[0] + 4, self.pos[1] + 4, self.side_length - 8, self.side_length - 8)
+
+        self.mouse_is_down = False
+
+    def update(self, window):
+        pygame.draw.rect(window, self.color, self.outer_rect, 2)
+        if self.active:
+            pygame.draw.rect(window, self.color, self.inner_rect)
+
+    def listen(self, mouse_get_pressed):
+        if mouse_get_pressed[0] and self.outer_rect.collidepoint(pygame.mouse.get_pos()) and not self.mouse_is_down: 
+
+            if self.active == False:
+                self.active = True
+            else:
+                self.active = False
+
+            self.mouse_is_down = True
+
+        elif not mouse_get_pressed[0]:
+            self.mouse_is_down = False
+
+
+
