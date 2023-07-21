@@ -88,10 +88,10 @@ def update_background():
     WINDOW.blit(GRID_BG, (0, 0))
 
 # play sound if user has not decided to mute
-def play_sound_if_needed():
-    INVALID_INPUT_SOUND.stop()
+def play_sound_if_needed(sound):
+    sound.stop()
     if not MUTE_CHECKBOX.active:
-        INVALID_INPUT_SOUND.play()
+        sound.play()
 
 # update cannon when aiming -----------------------------------------------------------------------------------
 # parameters: app state, mouse position, barrel image, barrel length
@@ -382,18 +382,18 @@ def main():
             if app_state == 'aiming and config':
 
                 force_input_val = FORCE_NUM_INPUT.get_value()
-                if force_input_val == "" or force_input_val < 0 or force_input_val > 10_000:
-                    play_sound_if_needed()
+                if force_input_val == "" or force_input_val < 0 or force_input_val > 10_000 or gravity_slider_input.get_value() == 0 or barrel_length_slider_input.get_value() == 0 or cannonball_mass_slider_input.get_value() == 0:
+                    play_sound_if_needed(INVALID_INPUT_SOUND)
                 else:
                     cannonball_physics_data = calc_prereq_forces(gravity=gravity_slider_input.get_value(), force=force_input_val, cb_mass=cannonball_mass_slider_input.get_value(), barrel_length=barrel_length_slider_input.get_value(), angle=barrel_angle) # test values
                     # ^ ((exit_cannon_time, exit_cannon_vel), net_force, net_accel, ||| hori_force_applied, hori_normal_force, net_hori_force, ||| vert_force_applied, vert_normal_force, vert_weight, net_vert_force, angle)
                     print(f'cannonball_physics_data: {cannonball_physics_data}')
                     if cannonball_physics_data[0] != (-1, -1):
-                        play_sound_if_needed()
+                        play_sound_if_needed(CANNON_SHOOT_SOUND)
                         FORCE_NUM_INPUT.selected = False
                         app_state = 'firing'
                     else:
-                        play_sound_if_needed()
+                        play_sound_if_needed(INVALID_INPUT_SOUND)
 
         update_background()
 
