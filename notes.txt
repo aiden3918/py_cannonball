@@ -1,7 +1,6 @@
-to do:
-- compile to .exe *
-    - WORKING: pyinstaller.exe --onefile --windowed --paths=.venv\Lib\site-packages  .\main.py
-- push to gh **
+Convert python to executable:
+pyinstaller.exe --onefile --windowed --paths=.venv\Lib\site-packages  .\main.py
+
 
 future plans:
 - add recoil to cannon / change calculations to include impulse/momentum (maybe not actually)
