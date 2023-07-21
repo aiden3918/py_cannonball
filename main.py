@@ -28,15 +28,13 @@ CANNONBALL_SIZE = 14
 CANNONBALL = pygame.transform.scale(CANNONBALL, (CANNONBALL_SIZE, CANNONBALL_SIZE))
 CANNONBALL_HALF_OF_SIZE = CANNONBALL_SIZE // 2
 
-CB_EXIT_TIME_TEXT = pygame.font.SysFont('arial', 25, True)
-CB_EXIT_VEL_TEXT = pygame.font.SysFont('arial', 25, True)
+CANNONBALL_PHYSICS_DATA_FONT = pygame.font.SysFont('arial', 20)
+cannonball_physics_data_string_list = []
 
 BARREL_CENTER = (120, 600)
 
 # performance data
-FPS_TEXT = pygame.font.SysFont('arial', 22)
-SECONDS_SINCE_EVENT_TEXT = pygame.font.SysFont('arial', 22)
-FRAMES_SINCE_EVENT_TEXT = pygame.font.SysFont('arial', 22)
+PERF_DATA_FONT = pygame.font.SysFont('arial', 22)
 ANGLE_TEXT = pygame.font.SysFont('arial', 20, True)
 
 # firing state variables
@@ -59,10 +57,7 @@ gravity_slider_input = gui.Slider((800, 50), (100, 20), 0.49, 0, 20, WHITISH, GR
 barrel_length_slider_input = gui.Slider((800, 120), (100, 20), 0.25, 0, 20, WHITISH, GRAYISH, 1)
 user_slider_inputs = [cannonball_mass_slider_input, gravity_slider_input, barrel_length_slider_input]
 
-force_text = pygame.font.SysFont('arial', 22)
-cannonball_mass_text = pygame.font.SysFont('arial', 22)
-gravity_text = pygame.font.SysFont('arial', 22)
-barrel_length_text = pygame.font.SysFont('arial', 22)
+USER_INPUT_FONT = pygame.font.SysFont('arial', 22)
 
 force_number_input = gui.Number_Input((350, 20), (100, 30), 'arial', 22, GRAYISH, WHITISH, 1000, 5)
 force_input_note = pygame.font.SysFont('arial', 14)
@@ -113,10 +108,10 @@ def render_inputs(mouse_pos, mouse_pressed, event):
     for input in user_slider_inputs:
         input.update(WINDOW, mouse_pos, mouse_pressed)
     
-    force_text_rendered = force_text.render(f'Force:                        N', 1, WHITE)
-    cb_mass_rendered = cannonball_mass_text.render(f'Cannonball Mass: {cannonball_mass_slider_input.get_value()} kg', 1, WHITE)
-    gravity_rendered = gravity_text.render(f'Gravity: {gravity_slider_input.get_value()} m/s^2', 1, WHITE)
-    barrel_length_rendered = barrel_length_text.render(f'Barrel Length: {barrel_length_slider_input.get_value()} m', 1, WHITE)
+    force_text_rendered = USER_INPUT_FONT.render(f'Force:                        N', 1, WHITE)
+    cb_mass_rendered = USER_INPUT_FONT.render(f'Cannonball Mass: {cannonball_mass_slider_input.get_value()} kg', 1, WHITE)
+    gravity_rendered = USER_INPUT_FONT.render(f'Gravity: {gravity_slider_input.get_value()} m/s^2', 1, WHITE)
+    barrel_length_rendered = USER_INPUT_FONT.render(f'Barrel Length: {barrel_length_slider_input.get_value()} m', 1, WHITE)
 
     force_input_note_text = force_input_note.render('Note: min = 0, max = 10,000', 1, WHITE)
 
@@ -135,21 +130,21 @@ def calc_prereq_forces(gravity, force, cb_mass, barrel_length, angle):
     # find net vertical force
     vert_force_applied = force * math.sin(a.conv_deg_to_rad(angle))
     vert_weight = f.calculate_forces('f', 0, cb_mass, gravity)
-    normal_force = f.calculate_forces('f', 0, cb_mass, gravity) * math.cos(a.conv_deg_to_rad(angle)) # is the cannon's angle the right one
+    vert_normal_force = f.calculate_forces('f', 0, cb_mass, gravity) * math.cos(a.conv_deg_to_rad(angle)) # is the cannon's angle the right one
     print(f"Weight: {vert_weight}")
-    print(f'Normal force: {normal_force}')
-    net_vert_force = vert_force_applied + normal_force - vert_weight
+    print(f'vert normal force: {vert_normal_force}')
+    net_vert_force = vert_force_applied + vert_normal_force - vert_weight
     print(f"net vert force: {net_vert_force}")
     # does the bug occur because once the cb leaves the ground, there is no longer any normal force acting on it?
     # get back to this
 
     # find net horizontal force
     hori_force_applied = force * math.cos(a.conv_deg_to_rad(angle))
-    hori_weight = f.calculate_forces('f', 0, cb_mass, gravity) * math.sin(a.conv_deg_to_rad(angle))
-    net_hori_force = hori_force_applied - hori_weight # - 0 (force of friction)
+    hori_normal_force = f.calculate_forces('f', 0, cb_mass, gravity) * math.sin(a.conv_deg_to_rad(angle))
+    net_hori_force = hori_force_applied - hori_normal_force # - 0 (force of friction)
     print(f'''
         hori force applied: {hori_force_applied}
-        hori weight: {hori_weight}
+        hori normal force: {hori_normal_force}
         net hori force: {net_hori_force}
           ''')
 
@@ -178,7 +173,7 @@ def calc_prereq_forces(gravity, force, cb_mass, barrel_length, angle):
 
         ''')
 
-        return ((exit_cannon_time, exit_cannon_vel), net_force, net_accel, angle)
+        return ((exit_cannon_time, exit_cannon_vel), net_force, net_accel, hori_force_applied, hori_normal_force, net_hori_force, vert_force_applied, vert_weight, net_vert_force, angle)
     
 def render_cannonball_exiting_cannon(acceleration, angle, barrel_length, frames_elapsed, dots_per_sec, cannon_barrel_copy_list):
     time_elapsed = frames_elapsed / FPS
@@ -222,10 +217,11 @@ def render_cannonball_motion(cannon_barrel_copy_list, hori_vel, vert_vel, cannon
     update_tracers(dots_per_sec, time, cb_new_pos)
 
 def render_cb_exit_data(cb_exit_time_and_vel_tuple):
+    # the tuple in question: ^ ((exit_cannon_time, exit_cannon_vel), net_force, net_accel ||| hori_force_applied, hori_normal, net_hori_force, ||| vert_force_applied, vert_weight, net_vert_force, angle)
     WINDOW.blit(USER_PANEL, (200, 0))
 
-    cb_exit_time_text_display = CB_EXIT_TIME_TEXT.render(f'Cannonball exit time: {round(cb_exit_time_and_vel_tuple[0] * 100) / 100} s', 1, WHITE)
-    cb_exit_vel_text_display = CB_EXIT_VEL_TEXT.render(f'Cannonball exit velocity: {round(cb_exit_time_and_vel_tuple[1] * 100) / 100} m/s', 1, WHITE)
+    cb_exit_time_text_display = CANNONBALL_PHYSICS_DATA_FONT.render(f'Cannonball exit time: {round(cb_exit_time_and_vel_tuple[0] * 100) / 100} s', 1, WHITE)
+    cb_exit_vel_text_display = CANNONBALL_PHYSICS_DATA_FONT.render(f'Cannonball exit velocity: {round(cb_exit_time_and_vel_tuple[1] * 100) / 100} m/s', 1, WHITE)
     WINDOW.blit(cb_exit_time_text_display, (250, 50))
     WINDOW.blit(cb_exit_vel_text_display, (250, 90))
     
@@ -233,9 +229,9 @@ def render_cb_exit_data(cb_exit_time_and_vel_tuple):
 # update performance data on the bottom -----------------------------------------------------------------------------------
 def update_display_data(clock, frames_elapsed, angle):
     # render data during launch (after cannonball leaves cannon)
-    FPS_DISPLAY = FPS_TEXT.render(f'FPS : {int(clock.get_fps())}', 1, GREENISH)
-    SECONDS_SINCE_EVENT_DISPLAY = SECONDS_SINCE_EVENT_TEXT.render(f'Seconds since cb launch: {round(1000 * frames_elapsed / FPS) / 1000}', 1, GREENISH)
-    FRAMES_SINCE_EVENT_DISPLAY = FRAMES_SINCE_EVENT_TEXT.render(f'Frames since cb launch: {frames_elapsed}', 1, GREENISH)
+    FPS_DISPLAY = PERF_DATA_FONT.render(f'FPS : {int(clock.get_fps())}', 1, GREENISH)
+    SECONDS_SINCE_EVENT_DISPLAY = PERF_DATA_FONT.render(f'Seconds since cb launch: {round(1000 * frames_elapsed / FPS) / 1000}', 1, GREENISH)
+    FRAMES_SINCE_EVENT_DISPLAY = PERF_DATA_FONT.render(f'Frames since cb launch: {frames_elapsed}', 1, GREENISH)
     
     rounded_angle = round(angle * 100) / 100
     ANGLE_DISPLAY = ANGLE_TEXT.render(f"Angle: {rounded_angle}°", 1, (0, 0, 0))
@@ -310,7 +306,7 @@ def main():
             case "firing":
 
                 # (returns boolean; whether the displacement is greater or equal to barrel length, (new displacement of cannonball x, y))
-                cb_exiting_cannon_data = render_cannonball_exiting_cannon(cannonball_physics_data[2], cannonball_physics_data[3], barrel_length_slider_input.get_value(), frames_elapsed, dots_per_sec, barrel_copy_and_angle)
+                cb_exiting_cannon_data = render_cannonball_exiting_cannon(cannonball_physics_data[2], cannonball_physics_data[-1], barrel_length_slider_input.get_value(), frames_elapsed, dots_per_sec, barrel_copy_and_angle)
                 
                 if cb_exiting_cannon_data[0]:
                     hori_init_vel = cannonball_physics_data[0][1] * math.cos(barrel_angle * math.pi / 180)
@@ -330,7 +326,7 @@ def main():
 
             case "cannonball arc":
                 render_cannonball_motion(barrel_copy_and_angle, hori_init_vel, vert_init_vel, cannon_exit_pos, -gravity_slider_input.get_value(), frames_elapsed - frame_where_cb_exits_cannon, dots_per_sec)
-                render_cb_exit_data(cannonball_physics_data[0])
+                render_cb_exit_data(cannonball_physics_data)
                 frames_elapsed += 1
 
                 if (frames_elapsed > FPS and keys_pressed[pygame.K_r]) or frames_elapsed > FPS * 20:
