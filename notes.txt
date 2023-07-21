@@ -2,7 +2,7 @@ if cannon points directly up or down, the whole game freezes (fixed)
 
 to do:
 
-- add extra information during cannonball arc (using black font) *
+- add extra information during cannonball arc (using black font) * - DONE
     - exit velocity
     - time it took to exit cannon
     - acceleration
@@ -14,7 +14,7 @@ to do:
 
     - vertical force applied
     - vertical weight
-    - normal force
+    - vertical normal force
     - net vertical force
 
     HOW TO DO:
@@ -23,6 +23,7 @@ to do:
     3. traverse the tuple to render and blit all of the elements with corresponding text
 
 - add more info page that describes how the app works and stuff (cannot only be clicked during aiming and config app state, also switch app state on click) **
+- add option to disable perf data and cb exit data ***
 
 future plans:
 - add recoil to cannon / change calculations to include impulse/momentum (maybe not actually)
@@ -30,3 +31,4 @@ future plans:
 
 bug checklist:
  - number input does will display when using sliders (ITS A FEATURE!)
+ - sometimes, net force is greater than force applied, which should never happen right? (rounding error?)
