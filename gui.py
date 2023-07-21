@@ -146,6 +146,3 @@ class Checkbox():
 
         elif not mouse_get_pressed[0]:
             self.mouse_is_down = False
-
-
-

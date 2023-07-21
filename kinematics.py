@@ -40,4 +40,3 @@ def calc_vf_using_vo_a_and_t(what_to_calculate, vf, vo, a, t):
             return (vf - vo) / t
         case "t":
             return (vf - vo) / a
-

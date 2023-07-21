@@ -21,4 +21,3 @@ def calculate_forces(what_to_calculate, f, m, a):
 # ff = u * fn
 def calc_friction(normal, coefficient_of_friction):
     return normal * coefficient_of_friction
-
