@@ -17,3 +17,8 @@ How it works:
 
 More features may be added in the future.
 For feedback or comments, please email: liaiden3918@gmail.com
+
+Citations:
+Background (black and white): desmos.com
+All sound effects from Pixabay
+All other assets were created by me
