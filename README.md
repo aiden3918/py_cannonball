@@ -16,4 +16,4 @@ How it works:
 4. Wait 20 seconds or press [R] to restart.
 
 More features may be added in the future.
-For feedbak or comments, please email: liaiden3918@gmail.com
+For feedback or comments, please email: liaiden3918@gmail.com
