@@ -6,6 +6,7 @@ Specs:
 - Pip v23.1.2
 - Compiled with Pyinstaller v5.13.0
 - Setuptools v65.5.0
+- Designed for Windows 11, but may work in other platforms
 
 This is an app designed to simulate the forces and kinematics of a cannonball being launched from a cannon, assuming no air resistance and that the coeffcient of friction is 0.
 
