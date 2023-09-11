@@ -1,5 +1,10 @@
 # Cannonball - A Pygame Project
 
+How to use:
+1. Make sure that your device runs Windows 11
+2. Download files
+3. Open "main.exe"
+
 Specs:
 - Python v3.11.4
 - Pygame v2.5.0
