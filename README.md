@@ -13,7 +13,7 @@ Specs:
 - Setuptools v65.5.0
 - Designed for Windows 11, but may work in other platforms
 
-This is an app designed to simulate the forces and kinematics of a cannonball being launched from a cannon, assuming no air resistance and that the coeffcient of friction is 0.
+This is an app designed to simulate the forces and kinematics of a cannonball being launched from a cannon, assuming no air resistance and that the coeffcient of friction is 0. In addition, force is similar to a gun, where force is applied until the cannonball exits the barrel.
 
 How it works:
 1. Adjust the sliders in order to simualte different independent variables.
