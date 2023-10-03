@@ -12,8 +12,8 @@ pygame.init()
 # initialize window -----------------------------------------------------------------------------------
 WINDOW_RES = (1280, 720)
 WINDOW = pygame.display.set_mode(WINDOW_RES)
-pygame.display.set_caption("Cannonball - Python/Pygame")
 WINDOW_CENTER = (WINDOW_RES[0] // 2, WINDOW_RES[1] // 2)
+pygame.display.set_caption("Cannonball - Python/Pygame")
 
 # background
 GRID_BG = pygame.image.load(os.path.join('Assets', 'grid-background-1280.png'))
